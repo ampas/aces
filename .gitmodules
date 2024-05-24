@@ -1,0 +1,15 @@
+[submodule "aces-core"]
+	path = aces-core
+	url = git@github.com:ampas/aces-dev.git
+[submodule "aces-look"]
+	path = aces-look
+	url = git@github.com:ampas/aces-look.git
+[submodule "aces-amf"]
+	path = aces-amf
+	url = git@github.com:ampas/aces-amf.git
+[submodule "aces-output"]
+	path = aces-output
+	url = git@github.com:ampas/aces-output.git
+[submodule "aces-input-and-colorspaces"]
+	path = aces-input-and-colorspaces
+	url = git@github.com:ampas/aces-input-and-colorspaces.git

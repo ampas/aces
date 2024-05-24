@@ -1,0 +1,70 @@
+name: Create Release with Submodules
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Trigger the workflow on new version tags
+
+permissions:
+  contents: write  # Ensure the workflow has permission to write contents
+  packages: write  # Ensure the workflow has permission to upload packages
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true # Checkout submodules
+
+    - name: Set up Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Sanitize Tag Name
+      id: sanitize_tag
+      run: |
+        TAG_NAME=${GITHUB_REF##*/}
+        if [[ "$TAG_NAME" == v* ]]; then
+          # Replace characters that are not allowed in filenames
+          SAFE_TAG_NAME=$(echo $TAG_NAME | tr '+./' '-')
+          echo "SAFE_TAG_NAME=$SAFE_TAG_NAME" >> $GITHUB_ENV
+        else
+          echo "This tag does not match the expected pattern." >&2
+          exit 1
+        fi
+
+    - name: Create release archives
+      run: |
+        mkdir -p /tmp/release_temp
+        rsync -a --exclude='.git' ./ /tmp/release_temp/
+        cd /tmp/release_temp
+        tar -czf /tmp/aces_${{ env.SAFE_TAG_NAME }}.tar.gz .
+        zip -r /tmp/aces_${{ env.SAFE_TAG_NAME }}.zip .
+
+    - name: Upload release assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: |
+          /tmp/aces_${{ env.SAFE_TAG_NAME }}.tar.gz
+          /tmp/aces_${{ env.SAFE_TAG_NAME }}.zip
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        name: ${{ github.ref_name }}
+        body: |
+          Release with submodules included.
+        draft: false
+        prerelease: false
+        files: |
+          /tmp/aces_${{ env.SAFE_TAG_NAME }}.tar.gz
+          /tmp/aces_${{ env.SAFE_TAG_NAME }}.zip

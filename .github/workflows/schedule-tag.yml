@@ -1,0 +1,40 @@
+name: Scheduled Tag Creation
+
+on:
+  schedule:
+    - cron: '0 0 1 3,6,9,12 *' # This cron expression schedules the action to run at 00:00 on the 1st day of March, June, September, and December
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Ensure the workflow has permission to write contents
+  packages: write  # Ensure the workflow has permission to upload packages
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Fetch ACES Core Version
+      run: |
+        git clone https://github.com/ampas/aces-dev.git
+        cd aces-dev
+        ACES_CORE_VERSION=$(git describe --tags `git rev-list --tags --max-count=1`)
+        echo "ACES_CORE_VERSION=$ACES_CORE_VERSION" 
+        echo "ACES_CORE_VERSION=$ACES_CORE_VERSION" >> $GITHUB_ENV
+
+    - name: Set up Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Create Tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG_NAME="${ACES_CORE_VERSION}+$(date +'%Y.%m.%d')"
+        echo "TAG_NAME=$TAG_NAME"
+        git tag $TAG_NAME
+        git push origin $TAG_NAME
